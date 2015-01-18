@@ -25,6 +25,7 @@ public class EditItemActivity extends ActionBarActivity {
     private void setFormText(String itemText) {
         EditText editText = (EditText) findViewById(R.id.editText);
         editText.setText(itemText);
+        editText.setSelection(itemText.length());
     }
 
     public void onSaveItem(View v) {
