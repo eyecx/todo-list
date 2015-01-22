@@ -1,11 +1,15 @@
 package com.codepath.simpletodo;
 
+import android.content.Context;
 import android.content.Intent;
+import android.database.Cursor;
+import android.database.sqlite.SQLiteDatabase;
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.Adapter;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.EditText;
@@ -20,8 +24,7 @@ import java.util.ArrayList;
 
 
 public class MainActivity extends ActionBarActivity {
-    ArrayList<String> items;
-    ArrayAdapter<String> itemsAdapter;
+    TodoCursorAdapter todoAdapter;
     ListView lvItems;
 
     private final int REQUEST_CODE = 42;
@@ -31,10 +34,20 @@ public class MainActivity extends ActionBarActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         lvItems = (ListView) findViewById(R.id.lvItems);
-        readItems();
-        itemsAdapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, items);
-        lvItems.setAdapter(itemsAdapter);
+        Cursor todoCursor = Item.fetchResultCursor();
+        todoAdapter = new TodoCursorAdapter(this, todoCursor);
+        lvItems.setAdapter(todoAdapter);
         setupListViewListener();
+    }
+
+    // for debugging
+    private void toastId (long id) {
+        Context context = getApplicationContext();
+        CharSequence text = "id" + id;
+        int duration = Toast.LENGTH_SHORT;
+
+        Toast toast = Toast.makeText(context, text, duration);
+        toast.show();
     }
 
     private void setupListViewListener() {
@@ -43,9 +56,9 @@ public class MainActivity extends ActionBarActivity {
             @Override
             public boolean onItemLongClick(AdapterView<?> adapter,
                                            View item, int pos, long id){
-                items.remove(pos);
-                itemsAdapter.notifyDataSetChanged();
-                writeItems();
+                Item it = Item.load(Item.class, id);
+                it.delete();
+                todoAdapter.changeCursor(Item.fetchResultCursor());
                 return true;
             }
         });
@@ -55,8 +68,9 @@ public class MainActivity extends ActionBarActivity {
                     public void onItemClick(AdapterView<?> adapter,
                                             View item, int pos, long id) {
                         Intent i = new Intent(MainActivity.this, EditItemActivity.class);
-                        i.putExtra("item_text", items.get(pos));
-                        i.putExtra("item_pos", pos);
+                        Item it = Item.load(Item.class, id);
+                        i.putExtra("item_text", it.name);
+                        i.putExtra("item_id", id);
                         startActivityForResult(i, REQUEST_CODE);
                     }
                 });
@@ -66,39 +80,22 @@ public class MainActivity extends ActionBarActivity {
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         if (resultCode == RESULT_OK && requestCode == REQUEST_CODE) {
             String savedText = data.getExtras().getString("saved_item_text");
-            int itemPos = data.getExtras().getInt("item_pos");
-            items.set(itemPos, savedText);
-            itemsAdapter.notifyDataSetChanged();
-            writeItems();
+            long itemId = (long) data.getExtras().get("item_id");
+            Item it = Item.load(Item.class, itemId);
+            it.name = savedText;
+            it.save();
+            todoAdapter.changeCursor(Item.fetchResultCursor());
         }
     }
 
     public void onAddItem(View v) {
         EditText etNewItem = (EditText) findViewById(R.id.etNewItem);
         String itemText = etNewItem.getText().toString();
-        itemsAdapter.add(itemText);
+        Item item = new Item();
+        item.name = itemText;
+        item.save();
+        todoAdapter.changeCursor(Item.fetchResultCursor());
         etNewItem.setText("");
-        writeItems();
-    }
-
-    private void readItems(){
-        File filesDir = getFilesDir();
-        File todoFile = new File(filesDir, "todo.txt");
-        try {
-            items = new ArrayList<String>(FileUtils.readLines(todoFile));
-        } catch (IOException e) {
-            items = new ArrayList<String>();
-        }
-    }
-
-    private void writeItems() {
-        File filesDir = getFilesDir();
-        File todoFile = new File(filesDir, "todo.txt");
-        try {
-            FileUtils.writeLines(todoFile, items);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
     }
 
     @Override

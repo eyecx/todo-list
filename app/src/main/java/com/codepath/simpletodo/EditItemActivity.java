@@ -11,14 +11,14 @@ import android.widget.EditText;
 
 public class EditItemActivity extends ActionBarActivity {
 
-    int itemPos;
+    long itemId;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_edit_item);
         String itemText = getIntent().getStringExtra("item_text");
-        itemPos = getIntent().getIntExtra("item_pos", 0);
+        itemId = getIntent().getLongExtra("item_id", 0);
         setFormText(itemText);
     }
 
@@ -32,7 +32,7 @@ public class EditItemActivity extends ActionBarActivity {
         EditText editText = (EditText) findViewById(R.id.editText);
         Intent data = new Intent();
         data.putExtra("saved_item_text", editText.getText().toString());
-        data.putExtra("item_pos", itemPos);
+        data.putExtra("item_id", itemId);
         setResult(RESULT_OK, data);
         finish();
     }
